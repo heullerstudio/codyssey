@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 영화 티어리스트</title>
+    <style>
+        /* 화이트 미니멀 디자인 */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --hover-bg: #f5f5f5;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #fafafa;
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--bg-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        h1, h2 {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* 컨트롤 버튼 및 필터 영역 */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filters select, .actions button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .actions button {
+            background: #333;
+            color: #fff;
+            border: none;
+        }
+
+        .actions button:hover {
+            background: #555;
+        }
+
+        /* 상단: 티어리스트 영역 */
+        .tier-board {
+            margin-bottom: 40px;
+        }
+
+        .tier-row {
+            display: flex;
+            border: 1px solid var(--border-color);
+            margin-bottom: -1px;
+            min-height: 120px;
+            background: #fff;
+        }
+
+        .tier-label {
+            width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-right: 1px solid var(--border-color);
+        }
+
+        /* 티어별 라벨 색상 */
+        .tier-S .tier-label { background: #ff7f7f; color: white; }
+        .tier-A .tier-label { background: #ffbf7f; color: white; }
+        .tier-B .tier-label { background: #ffff7f; color: #333; }
+        .tier-C .tier-label { background: #7fff7f; color: #333; }
+        .tier-D .tier-label { background: #7fbfff; color: white; }
+
+        .tier-movies {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10px;
+            gap: 10px;
+            flex: 1;
+        }
+
+        /* 포스터 카드 */
+        .poster-card {
+            width: 80px;
+            height: 110px;
+            background: #eee;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 12px;
+            padding: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            word-break: keep-all;
+            position: relative;
+        }
+
+        /* 2026년 신작 뱃지 */
+        .badge-new {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* 하단: 영화 목록 영역 */
+        .movie-list-section {
+            margin-top: 20px;
+        }
+
+        .movie-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .movie-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .movie-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .movie-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .movie-meta {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .rating-select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        /* 인쇄(PDF 저장) 시 하단 숨기기 */
+        @media print {
+            .controls, .movie-list-section { display: none !important; }
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎬 나의 영화 티어리스트</h1>
+
+    <div class="controls">
+        <div class="filters">
+            <!-- 시기 필터 추가 -->
+            <select id="categoryFilter" onchange="renderMovieList()">
+                <option value="all">전체 시기</option>
+                <option value="top100">역대 탑 100</option>
+                <option value="2026">2026 최신작</option>
+            </select>
+            <select id="originFilter" onchange="renderMovieList()">
+                <option value="all">전체 국가</option>
+                <option value="kr">한국 영화</option>
+                <option value="foreign">외국 영화</option>
+            </select>
+            <select id="genreFilter" onchange="renderMovieList()">
+                <option value="all">모든 장르</option>
+                <option value="액션">액션</option>
+                <option value="드라마">드라마</option>
+                <option value="SF">SF</option>
+                <option value="스릴러">스릴러</option>
+                <option value="로맨스">로맨스</option>
+            </select>
+        </div>
+        <div class="actions">
+            <button onclick="shareLink()">🔗 링크 공유</button>
+            <button onclick="window.print()">📄 PDF 저장</button>
+        </div>
+    </div>
+
+    <!-- 상단: 티어 보드 -->
+    <div class="tier-board" id="tierBoard">
+        <div class="tier-row tier-S"><div class="tier-label">S</div><div class="tier-movies" id="tier-5"></div></div>
+        <div class="tier-row tier-A"><div class="tier-label">A</div><div class="tier-movies" id="tier-4"></div></div>
+        <div class="tier-row tier-B"><div class="tier-label">B</div><div class="tier-movies" id="tier-3"></div></div>
+        <div class="tier-row tier-C"><div class="tier-label">C</div><div class="tier-movies" id="tier-2"></div></div>
+        <div class="tier-row tier-D"><div class="tier-label">D</div><div class="tier-movies" id="tier-1"></div></div>
+    </div>
+
+    <!-- 하단: 영화 목록 -->
+    <div class="movie-list-section">
+        <h2>영화 목록 (별점을 매겨보세요)</h2>
+        <div id="movieList"></div>
+    </div>
+</div>
+
+<script>
+    // 1. 확장된 영화 데이터 (탑 100 일부 + 2026 최신작)
+    const movieData = [
+        // --- 역대 탑 100 (한국) ---
+        { id: 1, title: "기생충", origin: "kr", genre: "드라마", category: "top100" },
+        { id: 2, title: "올드보이", origin: "kr", genre: "스릴러", category: "top100" },
+        { id: 3, title: "살인의 추억", origin: "kr", genre: "스릴러", category: "top100" },
+        { id: 4, title: "범죄도시", origin: "kr", genre: "액션", category: "top100" },
+        { id: 5, title: "명량", origin: "kr", genre: "액션", category: "top100" },
+        { id: 6, title: "신과함께", origin: "kr", genre: "드라마", category: "top100" },
+        { id: 7, title: "괴물", origin: "kr", genre: "SF", category: "top100" },
+        { id: 8, title: "아저씨", origin: "kr", genre: "액션", category: "top100" },
+        { id: 9, title: "베테랑", origin: "kr", genre: "액션", category: "top100" },
+        { id: 10, title: "건축학개론", origin: "kr", genre: "로맨스", category: "top100" },
+
+        // --- 역대 탑 100 (외국) ---
+        { id: 11, title: "쇼생크 탈출", origin: "foreign", genre: "드라마", category: "top100" },
+        { id: 12, title: "다크 나이트", origin: "foreign", genre: "액션", category: "top100" },
+        { id: 13, title: "인셉션", origin: "foreign", genre: "SF", category: "top100" },
+        { id: 14, title: "인터스텔라", origin: "foreign", genre: "SF", category: "top100" },
+        { id: 15, title: "어벤져스: 엔드게임", origin: "foreign", genre: "액션", category: "top100" },
+        { id: 16, title: "타이타닉", origin: "foreign", genre: "로맨스", category: "top100" },
+        { id: 17, title: "매트릭스", origin: "foreign", genre: "SF", category: "top100" },
+        { id: 18, title: "아바타", origin: "foreign", genre: "SF", category: "top100" },
+        { id: 19, title: "반지의 제왕", origin: "foreign", genre: "드라마", category: "top100" },
+        { id: 20, title: "어바웃 타임", origin: "foreign", genre: "로맨스", category: "top100" },
+
+        // --- 2026 최신작 (개봉 예정작 및 테스트용 가상 데이터) ---
+        { id: 101, title: "더 배트맨 파트 2", origin: "foreign", genre: "액션", category: "2026" },
+        { id: 102, title: "토이 스토리 5", origin: "foreign", genre: "드라마", category: "2026" },
+        { id: 103, title: "슈렉 5", origin: "foreign", genre: "드라마", category: "2026" },
+        { id: 104, title: "범죄도시 6 (가상)", origin: "kr", genre: "액션", category: "2026" },
+        { id: 105, title: "파묘: 두번째 (가상)", origin: "kr", genre: "스릴러", category: "2026" },
+        { id: 106, title: "아바타 4", origin: "foreign", genre: "SF", category: "2026" }
+    ];
+
+    let userRatings = {};
+
+    function init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedId = urlParams.get('id');
+
+        if (sharedId) {
+            const savedData = localStorage.getItem('tier_' + sharedId);
+            if (savedData) {
+                userRatings = JSON.parse(savedData);
+                alert("공유된 티어리스트를 불러왔습니다!");
+            }
+        }
+        renderMovieList();
+        renderTiers();
+    }
+
+    // 하단 영화 목록 렌더링 (필터 3개 적용)
+    function renderMovieList() {
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const originFilter = document.getElementById('originFilter').value;
+        const genreFilter = document.getElementById('genreFilter').value;
+        const listContainer = document.getElementById('movieList');
+        
+        listContainer.innerHTML = ''; 
+
+        const filteredMovies = movieData.filter(movie => {
+            const matchCategory = categoryFilter === 'all' || movie.category === categoryFilter;
+            const matchOrigin = originFilter === 'all' || movie.origin === originFilter;
+            const matchGenre = genreFilter === 'all' || movie.genre === genreFilter;
+            return matchCategory && matchOrigin && matchGenre;
+        });
+
+        filteredMovies.forEach(movie => {
+            const currentRating = userRatings[movie.id] || 0;
+            const originText = movie.origin === 'kr' ? '한국' : '외국';
+            const categoryText = movie.category === '2026' ? '🔥 2026 신작' : '⭐ 탑 100';
+
+            const div = document.createElement('div');
+            div.className = 'movie-item';
+            div.innerHTML = `
+                <div class="movie-info">
+                    <span class="movie-title">${movie.title}</span>
+                    <span class="movie-meta">${categoryText} | ${originText} | ${movie.genre}</span>
+                </div>
+                <select class="rating-select" onchange="rateMovie(${movie.id}, this.value)">
+                    <option value="0">별점 선택 안함</option>
+                    <option value="5" ${currentRating == 5 ? 'selected' : ''}>5점 (S티어)</option>
+                    <option value="4" ${currentRating == 4 ? 'selected' : ''}>4점 (A티어)</option>
+                    <option value="3" ${currentRating == 3 ? 'selected' : ''}>3점 (B티어)</option>
+                    <option value="2" ${currentRating == 2 ? 'selected' : ''}>2점 (C티어)</option>
+                    <option value="1" ${currentRating == 1 ? 'selected' : ''}>1점 (D티어)</option>
+                </select>
+            `;
+            listContainer.appendChild(div);
+        });
+    }
+
+    function rateMovie(movieId, rating) {
+        if (rating == 0) {
+            delete userRatings[movieId];
+        } else {
+            userRatings[movieId] = parseInt(rating);
+        }
+        renderTiers();
+    }
+
+    function renderTiers() {
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById('tier-' + i).innerHTML = '';
+        }
+
+        for (const [movieId, rating] of Object.entries(userRatings)) {
+            const movie = movieData.find(m => m.id == movieId);
+            if (movie) {
+                const card = document.createElement('div');
+                card.className = 'poster-card';
+                card.innerText = movie.title;
+                
+                // 2026년 영화면 카드에 'NEW' 뱃지 달아주기
+                if(movie.category === '2026') {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-new';
+                    badge.innerText = 'NEW';
+                    card.appendChild(badge);
+                }
+                
+                document.getElementById('tier-' + rating).appendChild(card);
+            }
+        }
+    }
+
+    function shareLink() {
+        const uniqueId = Math.random().toString(36).substring(2, 10);
+        localStorage.setItem('tier_' + uniqueId, JSON.stringify(userRatings));
+        const shareUrl = window.location.origin + window.location.pathname + '?id=' + uniqueId;
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert(`링크가 복사되었습니다!\n친구에게 공유해보세요.\n\n${shareUrl}`);
+        }).catch(err => {
+            alert("링크 복사에 실패했습니다. 브라우저 주소창에 다음 파라미터를 추가하세요: ?id=" + uniqueId);
+        });
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>

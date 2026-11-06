@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나만의 영화 티어리스트</title>
+    <style>
+        body { font-family: sans-serif; background: #f9f9f9; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .movie-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .tier-section { margin-top: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+        .tier-row { display: flex; gap: 10px; flex-wrap: wrap; min-height: 50px; padding: 10px; background: #fff; }
+        .movie-card { padding: 5px 10px; background: #e0e0e0; border-radius: 4px; font-size: 0.9em; }
+        button { cursor: pointer; padding: 8px 16px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>영화 티어리스트</h1>
+    
+    <div class="controls">
+        <select id="filterGenre"><option value="all">모든 장르</option><option value="액션">액션</option><option value="드라마">드라마</option></select>
+        <button onclick="saveData()">저장하기</button>
+        <button onclick="window.print()">PDF로 저장</button>
+    </div>
+
+    <div id="movieList">
+        <!-- 예시 데이터 -->
+        <div class="movie-item">
+            <span>인셉션 (액션)</span>
+            <select onchange="updateTier(this, '인셉션', '액션')">
+                <option value="0">별점 선택</option>
+                <option value="5">S</option><option value="4">A</option><option value="3">B</option><option value="2">C</option><option value="1">D</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="tiers">
+        <h2>티어 결과</h2>
+        <div class="tier-section"><h3>S 티어</h3><div id="tier-S" class="tier-row"></div></div>
+        <div class="tier-section"><h3>A 티어</h3><div id="tier-A" class="tier-row"></div></div>
+        <div class="tier-section"><h3>B 티어</h3><div id="tier-B" class="tier-row"></div></div>
+        <div class="tier-section"><h3>C 티어</h3><div id="tier-C" class="tier-row"></div></div>
+        <div class="tier-section"><h3>D 티어</h3><div id="tier-D" class="tier-row"></div></div>
+    </div>
+</div>
+
+<script>
+    let myMovies = JSON.parse(localStorage.getItem('myMovies')) || {};
+
+    function updateTier(select, title, genre) {
+        const score = select.value;
+        if(score == 0) delete myMovies[title];
+        else myMovies[title] = { score, genre };
+        renderTiers();
+    }
+
+    function renderTiers() {
+        const tiers = { '5': 'S', '4': 'A', '3': 'B', '2': 'C', '1': 'D' };
+        document.querySelectorAll('.tier-row').forEach(el => el.innerHTML = '');
+        
+        for (const title in myMovies) {
+            const tier = tiers[myMovies[title].score];
+            const div = document.createElement('div');
+            div.className = 'movie-card';
+            div.innerText = title;
+            document.getElementById('tier-' + tier).appendChild(div);
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('myMovies', JSON.stringify(myMovies));
+        alert('저장되었습니다!');
+    }
+
+    renderTiers();
+</script>
+
+</body>
+</html>
